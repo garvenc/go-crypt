@@ -9,6 +9,7 @@ var (
 )
 
 type Padding interface {
+	BlockSize() int
 	// Must ensure the result do not use the array out of boundary of the param slice.
 	// This usually means it should return a slice with a new array.
 	Pad([]byte) []byte
@@ -26,6 +27,10 @@ func NewPkcs7Padding(blockSize int) Pkcs7Padding {
 	return Pkcs7Padding{
 		blockSize: blockSize,
 	}
+}
+
+func (p Pkcs7Padding) BlockSize() int {
+	return p.blockSize
 }
 
 func (p Pkcs7Padding) Pad(buf []byte) []byte {
@@ -73,6 +78,10 @@ func NewPkcs5Padding() Pkcs5Padding {
 	return Pkcs5Padding{
 		pkcs7: NewPkcs7Padding(8),
 	}
+}
+
+func (p Pkcs5Padding) BlockSize() int {
+	return p.pkcs7.BlockSize()
 }
 
 func (p Pkcs5Padding) Pad(buf []byte) []byte {

@@ -13,7 +13,7 @@ func TestAesCbc(t *testing.T) {
 	result := "DC9HZuq4EOq7fO+vP2Qs2Oh9zfaA8TI/u6tHN38yvcM="
 
 	t.Run("encrypt", func(t *testing.T) {
-		encrypter := NewAesCbcEncrypter(key, iv, NewPkcs7Padding(8))
+		encrypter := NewAesCbcEncrypter(key, iv, NewPkcs7Padding(AesBlockSize))
 		enc, err := encrypter.Encrypt([]byte(data))
 		if err != nil {
 			t.Error("encrypt:", err)
@@ -25,7 +25,7 @@ func TestAesCbc(t *testing.T) {
 	})
 	t.Run("decrypt", func(t *testing.T) {
 		buf, _ := base64.StdEncoding.DecodeString(result)
-		decrypter := NewAesCbcDecrypter(key, iv, NewPkcs7Padding(8))
+		decrypter := NewAesCbcDecrypter(key, iv, NewPkcs7Padding(AesBlockSize))
 		dec, err := decrypter.Decrypt(buf)
 		if err != nil {
 			t.Error("decrypt:", err)
@@ -143,8 +143,8 @@ func BenchmarkAes256CbcDecrypt1000Bytes(b *testing.B) {
 	key := bytes.Repeat([]byte("a"), Aes256KeySize)
 	iv := bytes.Repeat([]byte("b"), AesIvSize)
 	data := bytes.Repeat([]byte("s"), 1000)
-	encrypter := NewAesCbcEncrypter(key, iv, NewPkcs7Padding(8))
-	decrypter := NewAesCbcDecrypter(key, iv, NewPkcs7Padding(8))
+	encrypter := NewAesCbcEncrypter(key, iv, NewPkcs7Padding(AesBlockSize))
+	decrypter := NewAesCbcDecrypter(key, iv, NewPkcs7Padding(AesBlockSize))
 	enc, err := encrypter.Encrypt(data)
 	if err != nil {
 		b.Error("prepare enc data fail:", err)

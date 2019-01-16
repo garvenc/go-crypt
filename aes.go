@@ -11,19 +11,22 @@ const (
 	Aes192KeySize = 192 / 8       // Size is 24 bytes.
 	Aes256KeySize = 256 / 8       // Size is 32 bytes.
 	AesIvSize     = aes.BlockSize // Size is 16 bytes.
+	AesBlockSize  = aes.BlockSize // Size is 16 bytes.
 )
 
 var (
-	errAesSrcSizeMustBeMultipleOfBlockSize = errors.New("data size must be multiple of block size")
-	errAesIvLenMustBeBlockSize             = errors.New("iv length must equal to block size")
+	errAesPaddingBlockSizeMustBeAesBlockSize = errors.New("padding block size must be aes block size")
+	errAesDataSizeMustBeMultipleOfBlockSize  = errors.New("data size must be multiple of block size")
+	errAesIvLenMustBeBlockSize               = errors.New("iv length must equal to block size")
 )
 
 // The key must be either 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256.
 // The iv must be 16 bytes.
+// The block size of padding must be 16 bytes.
 //
 // Can call HasError to see if it has an error.
 func NewAesCbcEncrypter(key, iv []byte, padding Padding) AesBlockModeEncrypter {
-	block, err := checkKeyIv(key, iv)
+	block, err := checkKeyIvPadding(key, iv, padding)
 	if err != nil {
 		return newAesBlockModeEncrypter(nil, nil, err)
 	}
@@ -32,10 +35,11 @@ func NewAesCbcEncrypter(key, iv []byte, padding Padding) AesBlockModeEncrypter {
 
 // The key must be either 16, 24, or 32 bytes to select AES-128, AES-192, or AES-256.
 // The iv must be 16 bytes.
+// The block size of padding must be 16 bytes.
 //
 // Can call HasError to see if it has an error.
 func NewAesCbcDecrypter(key, iv []byte, padding Padding) AesBlockModeDecrypter {
-	block, err := checkKeyIv(key, iv)
+	block, err := checkKeyIvPadding(key, iv, padding)
 	if err != nil {
 		return newAesBlockModeDecrypter(nil, nil, err)
 	}
@@ -97,6 +101,13 @@ func checkKeyIv(key, iv []byte) (cipher.Block, error) {
 	return aes.NewCipher(key)
 }
 
+func checkKeyIvPadding(key, iv []byte, padding Padding) (cipher.Block, error) {
+	if padding.BlockSize() != AesBlockSize {
+		return nil, errAesPaddingBlockSizeMustBeAesBlockSize
+	}
+	return checkKeyIv(key, iv)
+}
+
 // It may has an error, call HasError to see it.
 type AesBlockModeEncrypter struct {
 	blockMode cipher.BlockMode
@@ -151,7 +162,7 @@ func (d AesBlockModeDecrypter) Decrypt(src []byte) ([]byte, error) {
 		return nil, d.err
 	}
 	if len(src)%d.blockMode.BlockSize() != 0 {
-		return nil, errAesSrcSizeMustBeMultipleOfBlockSize
+		return nil, errAesDataSizeMustBeMultipleOfBlockSize
 	}
 	dst := make([]byte, len(src))
 	d.blockMode.CryptBlocks(dst, src)
